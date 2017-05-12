@@ -1,5 +1,6 @@
 package ecp.Lab1.PR;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,91 +21,124 @@ import org.apache.hadoop.util.ToolRunner;
 
 
 public class PageRankDriver extends Configured implements Tool { 
-	
+
 	public static Set<String> nodes = new HashSet<String>();
-	
+
 	public static void main(String[] args) throws Exception {
-	      System.out.println(Arrays.toString(args));
-	      int res = ToolRunner.run(new Configuration(), new PageRankDriver(), args);
-	      
-	      System.exit(res);
-	   }
-	
-	
+		System.out.println(Arrays.toString(args));
+		int res = ToolRunner.run(new Configuration(), new PageRankDriver(), args);
+
+		System.exit(res);
+	}
+
+
 	@Override
-	   public int run(String[] args) throws Exception {
-	      System.out.println(Arrays.toString(args));
-	      System.out.println("Starting Page Rank 1 ...");
-	      Job job = new Job(getConf(), "PageRank");
-	      job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";"); //We use ";" as a delimitor in the output file instead of tab
-	      job.setJarByClass(PageRankDriver.class);
-	      job.setOutputKeyClass(Text.class);
-	      job.setOutputValueClass(Text.class);
-	      
-	      job.setMapperClass(PageRank1Mapper.class);
-	      job.setReducerClass(PageRank1Reducer.class);
+	public int run(String[] args) throws Exception {
+		System.out.println(Arrays.toString(args));
+		System.out.println("Starting Page Rank 1 ...");
+		Job job = new Job(getConf(), "PageRank1");
+		job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";"); //We use ";" as a delimitor in the output file instead of tab
+		job.setJarByClass(PageRankDriver.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
 
-	      job.setInputFormatClass(TextInputFormat.class);
-	      job.setOutputFormatClass(TextOutputFormat.class);
+		job.setMapperClass(PageRank1Mapper.class);
+		job.setReducerClass(PageRank1Reducer.class);
 
-	      FileInputFormat.addInputPath(job, new Path("input/PageRank")); 
-	      Path outputPath = new Path("output/PageRank/Processing1/");
-	      FileOutputFormat.setOutputPath(job, outputPath);
-	      FileSystem hdfs = FileSystem.get(getConf());
-		  if (hdfs.exists(outputPath)){
-		      hdfs.delete(outputPath, true);
-		  }
-		  job.waitForCompletion(true);
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(job, new Path("input/PageRank")); 
+		Path outputPath = new Path("output/PageRank/Processing1/");
+		FileOutputFormat.setOutputPath(job, outputPath);
+		FileSystem hdfs = FileSystem.get(getConf());
+		if (hdfs.exists(outputPath)){
+			hdfs.delete(outputPath, true);
+		}
+		job.waitForCompletion(true);
+
+		
+		
+		System.out.println("Starting Page Rank 2 ...");
+		Integer ite = 2;
+		for (int runs = 1; runs < 5; runs++) {
+            System.out.println("Page Rank2 : Iteration number :" +runs);
+            boolean res = Job2(ite);
+            if (!res) {
+          	System.out.println("Program Interrupted");
+                System.exit(1);
+            }
+            else {
+            	ite++;
+            }
+        }
+		
+
+		System.out.println("Starting Page Rank 3 ...");
+		boolean res = Job3(ite);
+		if (!res) {
+        	System.out.println("Program Interrupted");
+            System.exit(1);
+        }
+		System.out.println("Done");
+		
 		  
-		  System.out.println("Starting Page Rank 2 ...");
-		  job = Job.getInstance(new Configuration(), "PageRank2");
-	      job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";");
-	      job.setJarByClass(PageRankDriver.class);
-	      job.setOutputKeyClass(Text.class);
-	      job.setOutputValueClass(Text.class);
-	      
-	      job.setMapperClass(PageRank2Mapper.class);
-	      job.setReducerClass(PageRank2Reducer.class);
+		return 0;
+	}
 
-	      job.setInputFormatClass(TextInputFormat.class);
-	      job.setOutputFormatClass(TextOutputFormat.class);
+	public boolean Job2 (Integer ite) throws IllegalArgumentException, IOException, ClassNotFoundException, InterruptedException{
+		Job job = new Job(getConf(), "PageRank2");
+		job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";");
+		job.setJarByClass(PageRankDriver.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
 
-	      FileInputFormat.addInputPath(job, new Path("output/PageRank/Processing1/")); 
-	      Path outputPath2 = new Path("output/PageRank/Processing2/");
-	      FileOutputFormat.setOutputPath(job, outputPath2);
-	      if (hdfs.exists(outputPath2)){
-		      hdfs.delete(outputPath2, true);
-		  }
+		job.setMapperClass(PageRank2Mapper.class);
+		job.setReducerClass(PageRank2Reducer.class);
 
-	      job.waitForCompletion(true);
-	      
-	      System.out.println("Starting Page Rank 3 ...");
-	      
-	      job = Job.getInstance(new Configuration(), "PageRank3");
-	      job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";");
-	      job.setJarByClass(PageRankDriver.class);
-	      job.setOutputKeyClass(DoubleWritable.class);
-	      job.setOutputValueClass(Text.class);
-	      
-	      job.setMapperClass(PageRank3Mapper.class);
-	      job.setReducerClass(PageRank3Reducer.class);
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
 
-	      job.setInputFormatClass(TextInputFormat.class);
-	      job.setOutputFormatClass(TextOutputFormat.class);
+		String inPath = "output/PageRank/Processing"+(ite-1)+"/";
+		System.out.println("Input : "+inPath);
+		FileInputFormat.addInputPath(job, new Path(inPath)); 
+		String outPath = "output/PageRank/Processing"+ite+"/";
+		System.out.println("Output : "+outPath);
+		Path outputPath = new Path(outPath);
+		FileOutputFormat.setOutputPath(job, outputPath);
+		FileSystem hdfs = FileSystem.get(getConf());
+		if (hdfs.exists(outputPath)){
+			hdfs.delete(outputPath, true);
+		}
 
-	      FileInputFormat.addInputPath(job, new Path("output/PageRank/Processing2/")); 
-	      Path outputPath3 = new Path("output/PageRank/Processing3/");
-	      FileOutputFormat.setOutputPath(job, outputPath3);
-	      if (hdfs.exists(outputPath3)){
-		      hdfs.delete(outputPath3, true);
-		  }
+		return job.waitForCompletion(true);
+	}
+	
+	public boolean Job3 (Integer ite) throws IllegalArgumentException, IOException, ClassNotFoundException, InterruptedException{
+		Job job = Job.getInstance(new Configuration(), "PageRank3");
+		job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ";");
+		job.setJarByClass(PageRankDriver.class);
+		job.setOutputKeyClass(DoubleWritable.class);
+		job.setOutputValueClass(Text.class);
 
-	      job.waitForCompletion(true);
-	      
-	      
-	      System.out.println("Done");
-	      
-	      return 0;
-	   }
-	 
+		job.setMapperClass(PageRank3Mapper.class);
+		job.setReducerClass(PageRank3Reducer.class);
+
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+		String inPath = "output/PageRank/Processing"+(ite-1)+"/";
+		System.out.println("Input : "+inPath);
+		FileInputFormat.addInputPath(job, new Path(inPath)); 
+		String outPath = "output/PageRank/Processing"+ite+"/";
+		System.out.println("Output : "+outPath);
+		Path outputPath3 = new Path(outPath);
+		FileOutputFormat.setOutputPath(job, outputPath3);
+		FileSystem hdfs = FileSystem.get(getConf());
+		if (hdfs.exists(outputPath3)){
+			hdfs.delete(outputPath3, true);
+		}
+
+		return job.waitForCompletion(true);
+	}
+
 }

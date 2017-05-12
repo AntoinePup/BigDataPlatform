@@ -20,11 +20,15 @@ public class PageRank2Mapper extends Mapper<LongWritable, Text, Text, Text> {
 		String[] nodes = Arrays.copyOfRange(values, 2, values.length);
 		String line = new String();
 		
+		
 		for (String node:nodes){
 			context.write(new Text(node), new Text(pageRank+";"+nodes.length));
 			line+=node+";";
 		}
-		line = line.substring(0, line.length()-1);
+		if(line.length()>0){
+			line = line.substring(0, line.length()-1);
+		}
 		context.write(new Text(currentNode), new Text("#"+line));
+		//System.out.println("Map 2 :"+currentNode+" Page rank : "+pageRank);
 	}
 }

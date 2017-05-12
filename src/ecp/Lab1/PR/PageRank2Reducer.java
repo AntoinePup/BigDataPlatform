@@ -19,14 +19,15 @@ public class PageRank2Reducer extends Reducer<Text, Text, Text, Text> {
 			}
 			else {
 				Double pageRank = Double.parseDouble(value.toString().split(";")[0]);
+				//System.out.println(pageRank);
 				Integer nbNodes = Integer.parseInt(value.toString().split(";")[1]);
 				
 				sum+=(pageRank/nbNodes);
 			}
 		}
 		
-		Double newPageRank = 0.85*sum+(1-0.85);
-		
+		Double newPageRank = 0.85*sum+(1.00-0.85);
+		//System.out.println("Reducer 2 : "+key.toString());
 		context.write(key, new Text(newPageRank.toString()+";"+line));
 	
 	}
